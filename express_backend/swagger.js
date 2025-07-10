@@ -4,12 +4,13 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'My Express API',
+      title: 'Timescale Data Management System API',
       version: '1.0.0',
-      description: 'A simple Express API documented with Swagger',
+      description: 'REST API for organizations, facilities, fill events, and tag values. Powered by Express, Prisma, and TimescaleDB.',
     }
   },
-  apis: ['./src/routes/*.js'], // Path to the API docs
+  // Include TypeScript route/controller files for annotation
+  apis: ['./src/routes/*.ts', './src/controllers/*.ts'],
 };
 
 const swaggerSpec = swaggerJSDoc(options);
