@@ -1,9 +1,15 @@
+// Load environment variables from .env at the very start (ensures DATABASE_URL for Prisma/TimescaleDB)
+import dotenv from 'dotenv';
+dotenv.config();
+
 import cors from 'cors';
 import express, { Request, Response, NextFunction } from 'express';
 import routes from './routes';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from '../swagger';
 
+// Prisma client is initialized to verify .env DATABASE_URL is loaded and TimescaleDB is reachable.
+import prisma from './prisma';
 // Initialize express app
 const app = express();
 
