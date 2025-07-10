@@ -2,10 +2,12 @@
     "name": "minimal-express-app",
     "version": "1.0.0",
     "description": "Minimal Express app with scalable structure",
-    "main": "src/server.js",
+    "main": "dist/server.js",
     "scripts": {
-        "start": "node src/server.js",
-        "dev": "nodemon src/server.js",
+        "start": "node dist/server.js",
+        "build": "tsc",
+        "dev": "ts-node src/server.ts",
+        "dev:watch": "nodemon --watch src --ext ts,js,json --exec ts-node src/server.ts",
         "test": "jest",
         "lint": "eslint ."
     },
@@ -20,7 +22,12 @@
         "eslint": "^9.24.0",
         "globals": "^16.0.0",
         "jest": "^29.7.0",
-        "nodemon": "^3.0.1"
+        "nodemon": "^3.0.1",
+        "typescript": "^5.4.5",
+        "ts-node": "^10.9.2",
+        "@types/node": "^20.11.30",
+        "@types/express": "^4.17.21",
+        "@types/cors": "^2.8.17"
     },
     "nodemonConfig": {
         "watch": ["src"],
@@ -35,6 +42,6 @@
             "dist",
             "build"
         ],
-        "ext": "js,json"
+        "ext": "ts,js,json"
     }
 }
