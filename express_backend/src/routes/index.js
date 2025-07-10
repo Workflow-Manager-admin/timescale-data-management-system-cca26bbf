@@ -1,6 +1,12 @@
 const express = require('express');
 const healthController = require('../controllers/health');
 
+// Import resource routes (use require/interop for TS/JS compatibility)
+const organizationRoutes = require('./organizationRoutes.ts').default || require('./organizationRoutes');
+const facilityRoutes = require('./facilityRoutes.ts').default || require('./facilityRoutes');
+const fillEventRoutes = require('./fillEventRoutes.ts').default || require('./fillEventRoutes');
+const tagValueRoutes = require('./tagValueRoutes.ts').default || require('./tagValueRoutes');
+
 const router = express.Router();
 // Health endpoint
 
@@ -31,5 +37,12 @@ const router = express.Router();
  *                   example: development
  */
 router.get('/', healthController.check.bind(healthController));
+
+// Register resource subroutes (prefixes)
+// e.g. /organizations, /facilities, /fill-events, /tag-values
+router.use('/organizations', organizationRoutes);
+router.use('/facilities', facilityRoutes);
+router.use('/fill-events', fillEventRoutes);
+router.use('/tag-values', tagValueRoutes);
 
 module.exports = router;
