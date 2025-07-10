@@ -1,6 +1,12 @@
 /// Base Prisma schema for TimescaleDB integration.
 /// You will need to set the DATABASE_URL environment variable for full connection.
 /// Adjust provider and previewFeatures in accordance with TimescaleDB compatibility.
+///
+/// TimescaleDB Support Notes:
+///  - Table "FillEvent" is intended to be a TimescaleDB hypertable (time-series data, partitioned on 'timestamp').
+///  - Table "TagValue" is intended to store time-series tag values, with hypertable and continuous aggregate use.
+///  - Custom SQL/TSQL (migration) required to create hypertables and aggregates after deploy.
+///  - Prisma itself does not natively support hypertable creation: Use @@map for table names and add instructions for post-processing.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,3 +16,107 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+/// Enum for FillEvent status
+enum FillEventStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+/// Enum for Tag types
+enum TagType {
+  PRESSURE
+  TEMPERATURE
+  FLOW
+  LEVEL
+  OTHER
+}
+
+// ======================
+// Organization 
+// ======================
+model Organization {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  facilities  Facility[] 
+
+  @@map("organization")
+}
+
+// ======================
+// Facility 
+// ======================
+model Facility {
+  id             String         @id @default(uuid())
+  name           String
+  description    String?
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  fillEvents     FillEvent[]
+
+  @@unique([name, organizationId])
+  @@map("facility")
+}
+
+// ======================
+// FillEvent
+// TimescaleDB Hypertable: Partition on timestamp
+// ======================
+/// @note TimescaleDB Hypertable: After deploy, convert "fill_event" into a hypertable using 'timestamp' as time partition.
+/// Suggested SQL: SELECT create_hypertable('fill_event', 'timestamp');
+model FillEvent {
+  id           String       @id @default(uuid())
+  facility     Facility     @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  facilityId   String
+  status       FillEventStatus
+  notes        String?
+  timestamp    DateTime     // The core time field for hypertable partitioning
+  operator     String?
+  tagValues    TagValue[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([facilityId, timestamp])
+  @@map("fill_event")
+}
+
+// ======================
+// TagValue
+// Store individual time-series tag values associated with FillEvents
+// TimescaleDB Hypertable: Partition on timestamp
+// ======================
+/// @note TimescaleDB Hypertable: After deploy, convert "tag_value" into hypertable using 'timestamp' as partition field.
+/// Suggested SQL: SELECT create_hypertable('tag_value', 'timestamp');
+model TagValue {
+  id           String     @id @default(uuid())
+  fillEvent    FillEvent  @relation(fields: [fillEventId], references: [id], onDelete: Cascade)
+  fillEventId  String
+  name         String     // e.g., "TempOutlet"
+  type         TagType
+  value        Float
+  unit         String?
+  timestamp    DateTime   // The exact sampling/observation time for the tag value
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([fillEventId, name])
+  @@index([timestamp])
+  @@map("tag_value")
+}
+
+// ======================
+// NOTES ON TIMESCALEDB/PRISMA INTEGRATION
+// ======================
+// - Prisma does not create hypertables—run custom SQL in migrations or manually after deploying the schema:
+//   Example: SELECT create_hypertable('fill_event', 'timestamp');
+// - To define continuous aggregates (e.g., per-minute/hour aggregates for TagValue), define materialized views using SQL.
+// - Use the @@map directive to ensure table names fit Timescale naming if needed.
+// - Relationships defined are bidirectionally traversable in Prisma client.
+// - For custom SQL in migrations: Extend the Prisma migration workflow.
