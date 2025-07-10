@@ -1,0 +1,12 @@
+/// Base Prisma schema for TimescaleDB integration.
+/// You will need to set the DATABASE_URL environment variable for full connection.
+/// Adjust provider and previewFeatures in accordance with TimescaleDB compatibility.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
