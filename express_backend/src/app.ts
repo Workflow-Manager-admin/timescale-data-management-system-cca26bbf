@@ -4,6 +4,10 @@ import routes from './routes';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from '../swagger';
 
+// Import new middleware
+import { validationMiddleware } from './middleware/validationMiddleware';
+import { errorHandlerMiddleware } from './middleware/errorHandlerMiddleware';
+
 // Initialize express app
 const app = express();
 
@@ -41,16 +45,13 @@ app.use('/docs', swaggerUi.serve, (req: Request, res: Response, next: NextFuncti
 // Parse JSON request body
 app.use(express.json());
 
+// Register request validation middleware globally
+app.use(validationMiddleware);
+
 // Mount routes
 app.use('/', routes);
 
-// Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({
-    status: 'error',
-    message: 'Internal Server Error',
-  });
-});
+// Error handling middleware (should come last)
+app.use(errorHandlerMiddleware);
 
 export default app;
