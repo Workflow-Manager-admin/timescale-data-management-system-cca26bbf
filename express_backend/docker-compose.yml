@@ -1,0 +1,29 @@
+# docker-compose.yml for local development with TimescaleDB
+#
+# Usage:
+# 1. Run: docker-compose up -d
+# 2. This will start a TimescaleDB service on localhost:5432.
+# 3. Set the following connection string in your .env or DATABASE_URL:
+#    postgres://express:expresspassword@localhost:5432/expressdb
+# 4. To stop the instance: docker-compose down
+
+version: "3.8"
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: timescaledb_local
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: express
+      POSTGRES_PASSWORD: expresspassword
+      POSTGRES_DB: expressdb
+    # Uncomment below for persistent data:
+    # volumes:
+    #   - timescale_data:/var/lib/postgresql/data
+
+# Uncomment to persist data between restarts
+# volumes:
+#   timescale_data:
