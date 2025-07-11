@@ -1,6 +1,4 @@
-/// Base Prisma schema for TimescaleDB integration.
-/// You will need to set the DATABASE_URL environment variable for full connection.
-/// Adjust provider and previewFeatures in accordance with TimescaleDB compatibility.
+// schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -9,4 +7,94 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum TagValueType {
+  bool
+  int
+  double
+}
+
+enum FillEventType {
+  manualUpload
+  estimate
+  scadaBackfill
+}
+
+model Organization {
+  id             String   @id @default(uuid())
+  identifier     String
+  name           String
+  logoObjectKey  String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  facilities     Facility[]
+}
+
+model Facility {
+  id             String   @id @default(uuid())
+  identifier     String
+  name           String
+  timezone       String   // IANA TZ
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  collectionEvents FacilityCollectionEvent[]
+  tagValues        TagValue[]
+}
+
+model FillEvent {
+  id            String    @id @default(uuid())
+  type          FillEventType
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  rolledBackAt  DateTime?
+  notes         String?
+
+  collectionEvents FacilityCollectionEvent[]
+}
+
+model FacilityCollectionEvent {
+  /* Composite primary key */
+  id              String
+  facilityId      String
+  recordedAt      DateTime               // UTC
+  recordedAtLocal DateTime @db.Timestamp // local timestamp (no TZ)
+  createdAt       DateTime @default(now())
+  fillEventId     String?
+
+  facility   Facility   @relation(fields: [facilityId], references: [id])
+  fillEvent  FillEvent? @relation(fields: [fillEventId], references: [id])
+
+  tagValues  TagValue[]
+
+  @@id([id, facilityId])
+}
+
+model TagValue {
+  /* Natural PK required by Timescale hypertable */
+  facilityId      String
+  tagName         String
+  recordedAt      DateTime               // UTC
+
+  /* Other columns */
+  eventId         String
+  recordedAtLocal DateTime @db.Timestamp // local timestamp (no TZ)
+  valueType       TagValueType
+  valueDouble     Float?
+  valueInt        Int?
+  valueBool       Boolean?
+
+  /* Relations */
+  facility        Facility @relation(fields: [facilityId], references: [id])
+  collectionEvent FacilityCollectionEvent  @relation(fields: [facilityId, eventId], references: [facilityId, id])
+  
+  @@id([facilityId, tagName, recordedAt])
+
+  @@index([facilityId, recordedAt])
+  @@index([facilityId, eventId])   
 }
